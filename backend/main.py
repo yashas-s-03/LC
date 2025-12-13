@@ -7,7 +7,11 @@ from supabase import create_client, Client
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import backend.logic as logic
+
+try:
+    import backend.logic as logic
+except ImportError:
+    import logic
 
 # Robustly find the .env file
 # backend/main.py -> backend/ -> LC/ -> frontend/ -> .env
