@@ -67,6 +67,11 @@ def add_problem(problem: ProblemCreate):
     # but supabase-py usually raises exception or returns data.
     return response.data
 
+@app.get("/problems")
+def get_all_problems(user_id: str):
+    response = supabase.table("problems").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    return response.data
+
 @app.get("/dashboard")
 def get_dashboard(user_id: str):
     # Fetch problems where user_id matches and next_revision_date <= now

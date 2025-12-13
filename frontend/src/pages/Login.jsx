@@ -23,15 +23,18 @@ export default function Login() {
     };
 
     return (
-        <div className="login-container">
-            <div className="login-card">
+        <div className="app-container">
+            <div className="auth-box">
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧠</div>
                 <h1>Welcome Back</h1>
-                <p>Sign in to track your LeetCode progress</p>
+                <p style={{ color: '#8b949e', marginBottom: '2rem' }}>
+                    Sign in to track your LeetCode revision progress.
+                </p>
 
                 {error && <div className="error-message">{error}</div>}
 
                 <button onClick={handleLogin} className="btn-primary">
-                    Sign in with GitHub
+                    Continue with GitHub
                 </button>
             </div>
         </div>

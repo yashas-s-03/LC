@@ -5,8 +5,6 @@ export default function ProblemCard({ problem, onRevised }) {
     const { user } = useAuth();
 
     const handleRevise = async () => {
-        if (!confirm('Mark this problem as revised? It will be rescheduled.')) return;
-
         try {
             const response = await fetch(`${API_URL}/revise/${problem.id}`, {
                 method: 'POST',
@@ -16,62 +14,36 @@ export default function ProblemCard({ problem, onRevised }) {
 
             if (response.ok) {
                 onRevised();
-            } else {
-                alert('Failed to mark as revised');
             }
         } catch (err) {
             console.error(err);
         }
     };
 
-    const getDifficultyColor = (diff) => {
-        switch (diff) {
-            case 'Easy': return '#00b8a3';
-            case 'Medium': return '#ffc01e';
-            case 'Hard': return '#ff375f';
-            default: return '#fff';
-        }
-    };
-
     return (
-        <div className="problem-card" style={{
-            background: '#161b22',
-            border: '1px solid #30363d',
-            borderRadius: '6px',
-            padding: '1rem',
-            marginBottom: '1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-        }}>
-            <div>
+        <div className="problem-card">
+            <div className="problem-info">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <h3 style={{ margin: 0 }}>
+                    <h3>
                         {problem.url ? (
-                            <a href={problem.url} target="_blank" rel="noopener noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>
+                            <a href={problem.url} target="_blank" rel="noopener noreferrer" className="problem-link">
                                 {problem.title}
                             </a>
                         ) : problem.title}
                     </h3>
-                    <span style={{
-                        color: getDifficultyColor(problem.difficulty),
-                        fontSize: '0.8rem',
-                        border: `1px solid ${getDifficultyColor(problem.difficulty)}`,
-                        padding: '2px 6px',
-                        borderRadius: '12px'
-                    }}>
+                    <span className={`badge ${problem.difficulty}`}>
                         {problem.difficulty}
                     </span>
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#8b949e' }}>
+                <div className="problem-meta">
                     Next Review: {new Date(problem.next_revision_date).toLocaleDateString()}
                     {' • '}
                     Revison Count: {problem.revision_count}
                 </div>
-                {problem.notes && <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>📝 {problem.notes}</div>}
+                {problem.notes && <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#c9d1d9' }}>📝 {problem.notes}</div>}
             </div>
 
-            <button onClick={handleRevise} className="btn-primary">
+            <button onClick={handleRevise} className="btn-primary" style={{ width: 'auto' }}>
                 Mark Revised
             </button>
         </div>
