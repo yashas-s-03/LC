@@ -52,21 +52,22 @@ export default function AddProblemForm({ onProblemAdded }) {
             <div style={{ display: 'grid', gap: '1rem' }}>
                 <input
                     type="text"
-                    placeholder="Problem Title"
+                    placeholder="Problem Title (Required)"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     required
                     style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
                 />
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input
-                        type="url"
-                        placeholder="LeetCode URL"
-                        value={formData.url}
-                        onChange={e => setFormData({ ...formData, url: e.target.value })}
-                        style={{ flex: 1, padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
-                    />
+                <input
+                    type="url"
+                    placeholder="LeetCode URL (Optional)"
+                    value={formData.url}
+                    onChange={e => setFormData({ ...formData, url: e.target.value })}
+                    style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
+                />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
                     <select
                         value={formData.difficulty}
                         onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
@@ -76,15 +77,15 @@ export default function AddProblemForm({ onProblemAdded }) {
                         <option>Medium</option>
                         <option>Hard</option>
                     </select>
-                </div>
 
-                <input
-                    type="text"
-                    placeholder="Topics (comma separated)"
-                    value={formData.topics}
-                    onChange={e => setFormData({ ...formData, topics: e.target.value })}
-                    style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
-                />
+                    <input
+                        type="text"
+                        placeholder="Topics (comma separated)"
+                        value={formData.topics}
+                        onChange={e => setFormData({ ...formData, topics: e.target.value })}
+                        style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
+                    />
+                </div>
 
                 <textarea
                     placeholder="Notes / Approach"
