@@ -1,12 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AddProblemForm from './components/AddProblemForm';
 import ProblemCard from './components/ProblemCard';
-import { API_URL } from './config';
+import CursorBackground from './components/CursorBackground';
 
+import { API_URL } from './config';
 import toast, { Toaster } from 'react-hot-toast';
 
 function Dashboard() {
@@ -15,7 +16,11 @@ function Dashboard() {
   const [allProblems, setAllProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [difficultyFilter, setDifficultyFilter] = useState(null); // null, 'Easy', 'Medium', 'Hard'
+  const [topicFilter, setTopicFilter] = useState(null); // null or 'Dynamic Programming', etc.
+  const [showAllProblems, setShowAllProblems] = useState(false); // For "Show More" functionality
 
+  // Re-fetch function to refresh data
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -39,103 +44,409 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
+    if (user) fetchData();
+  }, [user?.id]);
 
-  return (
-    <div className="dashboard">
-      <Toaster position="top-right" />
-      <header>
-        <h1>LeetCode Revision</h1>
-        <div className="user-info">
-          <span>{user.email}</span>
-          <button onClick={signOut} className="btn-secondary">Logout</button>
-        </div>
-      </header>
-      <main>
-        {/* Stats Section */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h3>Total Problems</h3>
-            <div className="value">{allProblems.length}</div>
-          </div>
-          <div className="stat-card">
-            <h3>Due Today</h3>
-            <div className="value">{dueProblems.length}</div>
-          </div>
-          <div className="stat-card">
-            <h3>Difficulty</h3>
-            <div className="difficulty-breakdown">
-              <span className="badge Easy">Easy: {allProblems.filter(p => p.difficulty === 'Easy').length}</span>
-              <span className="badge Medium">Med: {allProblems.filter(p => p.difficulty === 'Medium').length}</span>
-              <span className="badge Hard">Hard: {allProblems.filter(p => p.difficulty === 'Hard').length}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Section: Add Button */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Your Dashboard</h2>
-          <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
-            {showAddForm ? 'Cancel' : '+ Add Problem'}
+  const deleteProblem = (problemId) => {
+    toast((t) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+        <b style={{ color: 'black' }}>Delete this problem?</b>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => {
+              performDelete(problemId);
+              toast.dismiss(t.id);
+            }}
+            style={{
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            style={{
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Cancel
           </button>
         </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: { border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }
+    });
+  };
 
-        {showAddForm && <AddProblemForm onProblemAdded={() => {
-          setShowAddForm(false);
-          fetchData();
-          toast.success("Problem Added!");
-        }} />}
+  const performDelete = async (problemId) => {
+    try {
+      const res = await fetch(`${API_URL}/problems/${problemId}?user_id=${user.id}`, {
+        method: 'DELETE',
+      });
 
-        {/* Due Problems Section */}
-        <h3 className="section-title">🔥 Due for Revision</h3>
-        <div className="problems-grid">
-          {loading ? (
-            <p>Loading...</p>
-          ) : dueProblems.length === 0 ? (
-            <p style={{ color: '#8b949e' }}>🎉 No problems due right now. Great job!</p>
-          ) : (
-            dueProblems.map(p => (
-              <ProblemCard key={p.id} problem={p} onRevised={() => {
-                fetchData();
-                toast.success("Marked as Revised!");
-              }} />
-            ))
-          )}
-        </div>
+      if (res.ok) {
+        toast.success("Problem deleted");
+        fetchData();
+      } else {
+        toast.error("Failed to delete");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error deleting problem");
+    }
+  };
 
-        {/* History Section */}
-        <h3 className="section-title" style={{ marginTop: '3rem' }}>📚 All Problems History</h3>
-        <div className="history-container">
-          {allProblems.length === 0 ? <p>No problems found.</p> : (
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Problem</th>
-                  <th>Topics</th>
-                  <th>Difficulty</th>
-                  <th>Revisions</th>
-                  <th>Next Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allProblems.map(p => (
-                  <tr key={p.id}>
-                    <td>
-                      <a href={p.url} target="_blank" rel="noreferrer" className="problem-link">{p.title}</a>
-                    </td>
-                    <td>{p.topics}</td>
-                    <td><span className={`badge ${p.difficulty}`}>{p.difficulty}</span></td>
-                    <td>{p.revision_count}</td>
-                    <td>{new Date(p.next_revision_date).toLocaleDateString()}</td>
-                  </tr>
+  // Helper for relative time
+  const timeAgo = (dateString) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    const now = new Date();
+
+    let diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 0 && diffInSeconds > -60) diffInSeconds = 0;
+    if (diffInSeconds < 0) return date.toLocaleDateString('en-GB');
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString('en-GB');
+  };
+
+  const getReviewStatus = (dateStr) => {
+    if (!dateStr) return { color: 'var(--text-secondary)', label: '-' };
+    const due = new Date(dateStr);
+    const now = new Date();
+    due.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    const diffDays = (due - now) / (1000 * 60 * 60 * 24);
+
+    if (diffDays <= 0) return { color: '#ff4d4d', label: 'Due Today', isUrgent: true }; // Red
+    if (diffDays <= 2) return { color: '#ff9f43', label: 'Soon' };    // Yellow
+    return { color: '#2ecc71', label: due.toLocaleDateString('en-GB') }; // Green
+  };
+
+  // --- Skill / Topic Logic ---
+  const ADVANCED_TOPICS = ['Dynamic Programming', 'Graph', 'Backtracking', 'Trie', 'Union Find', 'Segment Tree', 'Monotonic Stack', 'Bit Manipulation'];
+  const INTERMEDIATE_TOPICS = ['Hash Table', 'Tree', 'Binary Search', 'Stack', 'Heap', 'Greedy', 'Linked List', 'Sliding Window', 'Design'];
+
+  const getTopicStats = useMemo(() => {
+    const counts = {};
+    if (!allProblems) return { Advanced: [], Intermediate: [], Fundamental: [] };
+
+    allProblems.forEach(p => {
+      if (!p.topics) return;
+      let tList = [];
+      if (Array.isArray(p.topics)) tList = p.topics;
+      else if (typeof p.topics === 'string') tList = p.topics.split(',').map(t => t.trim());
+
+      tList.forEach(topic => {
+        if (topic) counts[topic] = (counts[topic] || 0) + 1;
+      });
+    });
+
+    const categories = { Advanced: [], Intermediate: [], Fundamental: [] };
+
+    Object.keys(counts).forEach(topic => {
+      if (ADVANCED_TOPICS.includes(topic)) categories.Advanced.push({ name: topic, count: counts[topic] });
+      else if (INTERMEDIATE_TOPICS.includes(topic)) categories.Intermediate.push({ name: topic, count: counts[topic] });
+      else categories.Fundamental.push({ name: topic, count: counts[topic] }); // Default to fundamental
+    });
+
+    // Sort by count desc
+    categories.Advanced.sort((a, b) => b.count - a.count);
+    categories.Intermediate.sort((a, b) => b.count - a.count);
+    categories.Fundamental.sort((a, b) => b.count - a.count);
+
+    return categories;
+  }, [allProblems]);
+  // Filter problems by difficulty
+  // Filter problems by difficulty AND topic
+  const filteredProblems = useMemo(() => {
+    let res = allProblems;
+    if (difficultyFilter) {
+      res = res.filter(p => p.difficulty === difficultyFilter);
+    }
+    if (topicFilter) {
+      res = res.filter(p => {
+        if (!p.topics) return false;
+        const pts = Array.isArray(p.topics) ? p.topics : p.topics.split(',').map(t => t.trim());
+        return pts.includes(topicFilter);
+      });
+    }
+    return res;
+  }, [allProblems, difficultyFilter, topicFilter]);
+
+  // Header stats for Left Sidebar
+  const easyCount = allProblems.filter(p => p.difficulty === 'Easy').length;
+  const mediumCount = allProblems.filter(p => p.difficulty === 'Medium').length;
+  const hardCount = allProblems.filter(p => p.difficulty === 'Hard').length;
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'var(--bg-secondary)',
+        color: 'var(--text-primary)'
+      }}>
+        <h2>🧠 Loading...</h2>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="dashboard-container">
+        <Toaster position="top-center" />
+
+        {/* Left Sidebar (Profile & Langs) */}
+        <aside className="sidebar">
+          <div className="profile-card">
+            <div className="profile-avatar">🧠</div>
+            <h3 className="profile-name">{user.email.split('@')[0]}</h3>
+          </div>
+
+          <div className="sidebar-section" style={{ marginTop: '0' }}>
+            <h4 className="section-header">Stats</h4>
+            <div className="sidebar-stats-container">
+              <div className="stat-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Total Solved</span>
+                <span style={{ fontWeight: '700', fontSize: '1.2rem', color: 'var(--text-primary)' }}>{allProblems.length}</span>
+              </div>
+
+              <div className="difficulty-breakdown sidebar-breakdown" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div
+                  className="diff-row"
+                  onClick={() => setDifficultyFilter('Easy')}
+                  title="Show Easy Problems"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '4px 0' }}
+                >
+                  <span className="diff-label easy" style={{ fontWeight: '500' }}>Easy</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{easyCount}</span>
+                </div>
+                <div
+                  className="diff-row"
+                  onClick={() => setDifficultyFilter('Medium')}
+                  title="Show Medium Problems"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '4px 0' }}
+                >
+                  <span className="diff-label medium" style={{ fontWeight: '500' }}>Med.</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{mediumCount}</span>
+                </div>
+                <div
+                  className="diff-row"
+                  onClick={() => setDifficultyFilter('Hard')}
+                  title="Show Hard Problems"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '4px 0' }}
+                >
+                  <span className="diff-label hard" style={{ fontWeight: '500' }}>Hard</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{hardCount}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Section */}
+            {allProblems.length > 0 && (
+              <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <h4 className="section-header">Skills</h4>
+                {['Advanced', 'Intermediate', 'Fundamental'].map(cat => {
+                  const skills = getTopicStats[cat];
+                  if (!skills || skills.length === 0) return null;
+                  return (
+                    <div key={cat} style={{ marginBottom: '1rem' }}>
+                      <div style={{ color: cat === 'Advanced' ? '#ff6b6b' : cat === 'Intermediate' ? '#feca57' : '#2ecc71', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></span>
+                        {cat}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {skills.slice(0, 6).map(s => {
+                          const isActive = topicFilter === s.name;
+                          return (
+                            <span
+                              key={s.name}
+                              onClick={() => setTopicFilter(isActive ? null : s.name)}
+                              style={{
+                                background: isActive ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                color: isActive ? 'white' : 'var(--text-secondary)',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
+                                border: isActive ? 'none' : '1px solid var(--border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: isActive ? '0 2px 8px rgba(139, 92, 246, 0.3)' : 'none'
+                              }}
+                            >
+                              {s.name} <span style={{ opacity: 0.8, fontSize: '0.7rem' }}>x{s.count}</span>
+                            </span>
+                          );
+                        })}
+                        {skills.length > 6 && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', paddingLeft: '4px' }}>...</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+
+          <button onClick={signOut} className="btn-secondary" style={{ marginTop: 'auto', width: '100%' }}>Logout</button>
+        </aside>
+
+        {/* Main Content (Stats, Heatmap, History) */}
+        <main className="main-content">
+
+          {/* Action Header */}
+          <div className="action-bar">
+            <h2 style={{ margin: 0 }}>Dashboard</h2>
+            <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
+              {showAddForm ? 'Close Form' : '+ Add Problem'}
+            </button>
+          </div>
+
+          {showAddForm && <AddProblemForm onProblemAdded={() => {
+            setShowAddForm(false);
+            fetchData();
+            toast.success("Problem Added!");
+          }} />
+          }
+
+
+
+
+
+          <div style={{ marginBottom: '2rem', marginTop: '1rem' }}>
+            <h4 style={{ color: '#ff9f43', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Due for Revision
+              {dueProblems.length > 0 && <span className="badge" style={{ background: '#ff4d4d', color: 'white', fontSize: '0.9rem', padding: '4px 8px' }}>🔔 {dueProblems.length}</span>}
+            </h4>
+            {dueProblems.filter(p => !difficultyFilter || p.difficulty === difficultyFilter).length > 0 ? (
+              <div className="due-problems-grid">
+                {dueProblems.filter(p => !difficultyFilter || p.difficulty === difficultyFilter).map(p => (
+                  <ProblemCard
+                    key={p.id}
+                    problem={p}
+                    onRevised={() => { fetchData(); toast.success("Refreshed!"); }}
+                    onDelete={() => deleteProblem(p.id)}
+                  />
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </main>
-    </div>
+              </div>
+            ) : (
+              <div style={{
+                padding: '2rem',
+                textAlign: 'center',
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius)',
+                border: '1px dashed var(--border)',
+                color: 'var(--text-secondary)'
+              }}>
+                🎉 All caught up! No {difficultyFilter} problems due for revision right now.
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Row: Recent AC */}
+          <div className="recent-ac-section" style={{ marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 className="section-title" style={{ margin: 0 }}>
+                {topicFilter ? `Topic: ${topicFilter}` : difficultyFilter ? `${difficultyFilter} Problems` : 'Recent Problems'}
+              </h3>
+
+              {/* Difficulty Tabs */}
+              <div className="difficulty-tabs">
+                <span className={!difficultyFilter ? "tab active" : "tab"} onClick={() => setDifficultyFilter(null)}>All ({allProblems.length})</span>
+                <span className={difficultyFilter === 'Easy' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Easy')}>Easy ({easyCount})</span>
+                <span className={difficultyFilter === 'Medium' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Medium')}>Medium ({mediumCount})</span>
+                <span className={difficultyFilter === 'Hard' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Hard')}>Hard ({hardCount})</span>
+              </div>
+            </div>
+
+
+
+            <div className="history-container card">
+              <div className="table-responsive">
+                <table className="history-table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>Title</th>
+                      <th>Difficulty</th>
+                      <th>Last Solved</th>
+                      <th>Next Review</th>
+                      <th>Rev. Count</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProblems.slice(0, showAllProblems ? filteredProblems.length : 10).map(p => (
+                      <tr key={p.id}>
+                        <td><a href={p.url} className="problem-link" target="_blank" rel="noopener noreferrer">{p.title}</a></td>
+                        <td><span className={`badge ${p.difficulty}`}>{p.difficulty}</span></td>
+                        <td>{timeAgo(p.solved_date)}</td>
+                        <td>
+                          {(() => {
+                            const status = getReviewStatus(p.next_revision_date);
+                            return <span style={{ color: status.color, fontWeight: status.isUrgent ? 'bold' : 'normal' }}>{status.label}</span>
+                          })()}
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{p.revision_count || 0}</td>
+                        <td>
+                          <button onClick={() => deleteProblem(p.id)} className="btn-icon-delete" title="Delete Problem">🗑️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredProblems.length > 10 && (
+                <div style={{ textAlign: 'center', padding: '1rem' }}>
+                  <button
+                    onClick={() => setShowAllProblems(!showAllProblems)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.75rem 2rem',
+                      fontSize: '0.95rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    {showAllProblems ? (
+                      <>Show Less ▲</>
+                    ) : (
+                      <>Show More ({filteredProblems.length - 10} more) ▼</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </>
   );
 }
 
@@ -145,9 +456,14 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Dashboard />} />
-          </Route>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

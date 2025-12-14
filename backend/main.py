@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from supabase import create_client, Client
 import os
 from pathlib import Path
@@ -12,6 +12,12 @@ try:
     import backend.logic as logic
 except ImportError:
     import logic
+import urllib.request
+import json
+import re
+
+class FetchRequest(BaseModel):
+    url: str
 
 # Robustly find the .env file
 # backend/main.py -> backend/ -> LC/ -> frontend/ -> .env
@@ -61,11 +67,37 @@ def read_root():
 @app.post("/problems")
 def add_problem(problem: ProblemCreate):
     data = problem.dict()
+    
+    # Logic: When adding a problem, we just solved it.
+    # Next revision should be in 3 days (Interval for 0 revisions).
+    # We should NOT see it in "Due" immediately.
+    
+    now = datetime.now()
+    # Interval for 0 is 3 days
+    next_date = now + timedelta(days=3) 
+    
+    data["created_at"] = now.isoformat()
+    data["solved_date"] = now.isoformat()
+    data["next_revision_date"] = next_date.isoformat()
+    data["revision_count"] = 0
+    
     # Let Supabase handle the ID generation and default dates
     response = supabase.table("problems").insert(data).execute()
-    # Check for errors strictly if response structure implies it, 
-    # but supabase-py usually raises exception or returns data.
     return response.data
+
+@app.delete("/problems/{problem_id}")
+def delete_problem(problem_id: str, user_id: str): # passing user_id as query param for simple verification
+    # 1. Verify ownership
+    problem = supabase.table("problems").select("*").eq("id", problem_id).execute()
+    if not problem.data:
+        raise HTTPException(status_code=404, detail="Problem not found")
+        
+    if problem.data[0]["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this problem")
+
+    # 2. Delete
+    response = supabase.table("problems").delete().eq("id", problem_id).execute()
+    return {"message": "Problem deleted successfully", "data": response.data}
 
 @app.get("/problems")
 def get_all_problems(user_id: str):
@@ -74,13 +106,23 @@ def get_all_problems(user_id: str):
 
 @app.get("/dashboard")
 def get_dashboard(user_id: str):
-    # Fetch problems where user_id matches and next_revision_date <= now
-    now_iso = datetime.now().isoformat()
+    # Fetch problems where user_id matches and next_revision_date IS DUE.
+    # User requested: "time does not matter just like after some days"
+    # Logic: if next_revision_date <= End of Today, it is due.
+    
+    # Get the end of the current day (local time approx, or UTC, keeping simple with server time)
+    # If standard ISO string "2023-10-25T14:00:00"
+    # We want to match anything where the date part is <= today.
+    # In ISO string comparison: "2023-10-25..." <= "2023-10-25T23:59:59"
+    
+    todays_date = datetime.now().date()
+    end_of_today = datetime.combine(todays_date, datetime.max.time())
+    cutoff_iso = end_of_today.isoformat()
     
     response = supabase.table("problems")\
         .select("*")\
         .eq("user_id", user_id)\
-        .lte("next_revision_date", now_iso)\
+        .lte("next_revision_date", cutoff_iso)\
         .execute()
         
     return response.data
@@ -100,22 +142,144 @@ def mark_revised(problem_id: str, request: RevisionRequest):
     
     # 2. Calculate next date
     current_revision_count = problem["revision_count"]
-    # We parse the DB date string to a datetime object
-    # Postgres format: 2023-10-27T10:00:00+00:00
-    # For fail-safety, we calculate from NOW if the date is weird, but ideally we use solved_date or last revision
-    # The logic function expects a datetime.
     
-    # Simplified: Calculate from NOW for the next interval
-    # (Standard spaced repetition usually simulates 'reviewing now')
+
+
+    # Actually, keep it simple.
     now = datetime.now()
-    next_date = logic.calculate_next_revision(now, current_revision_count)
+    next_date_full = logic.calculate_next_revision(now, current_revision_count)
     
     # 3. Update DB
     update_data = {
         "revision_count": current_revision_count + 1,
-        "next_revision_date": next_date.isoformat(),
+        "next_revision_date": next_date_full.isoformat(),
         "solved_date": now.isoformat() # Optional: update 'last interaction'
     }
     
     response = supabase.table("problems").update(update_data).eq("id", problem_id).execute()
     return response.data
+
+@app.post("/fetch-leetcode")
+def fetch_leetcode_data(request: FetchRequest):
+    url = request.url
+    slug = None
+    
+    # Check if input is purely numeric (e.g. "3775")
+    if re.match(r"^\d+$", url.strip()):
+        search_term = url.strip()
+        # 1. Search to find slug
+        search_query = """
+        query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+          problemsetQuestionList: questionList(
+            categorySlug: $categorySlug
+            limit: $limit
+            skip: $skip
+            filters: $filters
+          ) {
+            questions: data {
+              frontendQuestionId: questionFrontendId
+              title
+              titleSlug
+            }
+          }
+        }
+        """
+        search_payload = {
+            "query": search_query,
+            "variables": {
+                "categorySlug": "",
+                "limit": 1,
+                "skip": 0,
+                "filters": {"searchKeywords": search_term}
+            }
+        }
+        
+        # Helper to make request (simplified inline)
+        req = urllib.request.Request(
+            "https://leetcode.com/graphql", 
+            data=json.dumps(search_payload).encode('utf-8'),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req) as f:
+                resp = json.load(f)
+                questions = resp.get("data", {}).get("problemsetQuestionList", {}).get("questions", [])
+                # Verify match (LeetCode search is fuzzy, ensure ID matches if possible, or take first)
+                found = None
+                for q in questions:
+                    if q["frontendQuestionId"] == search_term:
+                        found = q
+                        break
+                if not found and questions:
+                    found = questions[0] # Fallback to best match
+                    
+                if found:
+                    slug = found["titleSlug"]
+        except Exception as e:
+            print(f"Search Error: {e}")
+            pass
+
+    if not slug:
+        # Fallback to URL parsing
+        match = re.search(r"/problems/([^/?]+)", url)
+        if match:
+            slug = match.group(1)
+        elif not re.match(r"^\d+$", url.strip()): 
+             # If it wasn't numeric and regex failed (maybe just a slug was passed directly?)
+             # Let's assume the input *is* the slug if it looks like one (no spaces, no slashes)
+             if re.match(r"^[a-z0-9-]+$", url.strip()):
+                 slug = url.strip()
+             else:
+                 raise HTTPException(status_code=400, detail="Invalid LeetCode URL or ID")
+        else:
+             raise HTTPException(status_code=404, detail="Problem ID not found")
+
+    # GraphQL Query
+    query = """
+    query questionData($titleSlug: String!) {
+      question(titleSlug: $titleSlug) {
+        title
+        difficulty
+        topicTags {
+          name
+        }
+      }
+    }
+    """
+    
+    payload = {
+        "query": query,
+        "variables": {"titleSlug": slug}
+    }
+    
+    # Request
+    req = urllib.request.Request(
+        "https://leetcode.com/graphql", 
+        data=json.dumps(payload).encode('utf-8'),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+    )
+    
+    try:
+        with urllib.request.urlopen(req) as f:
+            resp = json.load(f)
+            if "errors" in resp:
+                raise HTTPException(status_code=400, detail="LeetCode API Error")
+            q = resp.get("data", {}).get("question")
+            if not q:
+                raise HTTPException(status_code=404, detail="Problem not found")
+                
+            return {
+                "title": q["title"],
+                "difficulty": q["difficulty"],
+                "topics": [t["name"] for t in q["topicTags"]]
+            }
+    except Exception as e:
+        print(f"Fetch Error: {e}")
+        # Improve error handling for user
+        raise HTTPException(status_code=500, detail="Failed to fetch from LeetCode")

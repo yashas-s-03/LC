@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
+import toast from 'react-hot-toast';
 
 export default function AddProblemForm({ onProblemAdded }) {
     const { user } = useAuth();
@@ -12,12 +13,84 @@ export default function AddProblemForm({ onProblemAdded }) {
         notes: ''
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    // Removed local error state, using toast for errors now
+    const [isFetching, setIsFetching] = useState(false);
+
+    // Debounced Auto-Fetch
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            console.log("Timer fired for:", formData.url);
+            let url = formData.url;
+
+            if (url) {
+                // Case 1: Pure number (e.g. "3775")
+                if (/^\d+$/.test(url.trim())) {
+                    console.log("Input is numeric ID:", url);
+                    // Pass directly to backend
+                }
+                // Case 2: "Number. Title" pattern
+                else if (!url.includes('http') && !url.includes('.com') && /[0-9]+\./.test(url)) {
+                    console.log("Parsing Number. Title input:", url);
+                    const cleanTitle = url.replace(/^[\d\s.]*/, '').trim();
+                    if (cleanTitle.length > 2) {
+                        const slug = cleanTitle.toLowerCase()
+                            .replace(/[^\w\s-]/g, '')
+                            .replace(/\s+/g, '-');
+                        url = `https://leetcode.com/problems/${slug}`;
+                        console.log("Transformed to URL:", url);
+                        toast("Searching by Title: " + cleanTitle, { icon: '🔍', duration: 1500 });
+                    }
+                }
+            }
+
+            console.log("Checking URL/ID:", url, "Title present:", !!formData.title);
+
+            // Allow URL containing '/problems/' OR pure numeric input OR plain slug-like string
+            const isUrl = url && url.includes('/problems/');
+            const isId = /^\d+$/.test(url.trim());
+            // const isSlug = /^[a-z0-9-]+$/.test(url.trim()); // flexible
+
+            if ((isUrl || isId) && !formData.title) {
+                setIsFetching(true);
+                const toastId = toast.loading("Checking LeetCode...");
+                try {
+                    const res = await fetch(`${API_URL}/fetch-leetcode`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url }) // Sends the constructed URL
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setFormData(prev => ({
+                            ...prev,
+                            title: data.title,
+                            difficulty: data.difficulty,
+                            topics: data.topics ? data.topics.join(', ') : prev.topics
+                        }));
+                        toast.success("Found: " + data.title, { id: toastId });
+                    } else {
+                        toast.error("Could not find problem details", { id: toastId });
+                    }
+                } catch (error) {
+                    console.error("Fetch failed", error);
+                    toast.dismiss(toastId);
+                } finally {
+                    setIsFetching(false);
+                }
+            }
+        }, 600); // Reduced delay
+
+        return () => clearTimeout(timer);
+    }, [formData.url]);
+
+    const handleUrlChange = (e) => {
+        setFormData({ ...formData, url: e.target.value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
+        console.log("Submitting to:", API_URL); // Debugging
 
         try {
             const response = await fetch(`${API_URL}/problems`, {
@@ -32,46 +105,51 @@ export default function AddProblemForm({ onProblemAdded }) {
                 }),
             });
 
-            if (!response.ok) throw new Error('Failed to add problem');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to add problem');
+            }
 
             setFormData({ title: '', url: '', difficulty: 'Easy', topics: '', notes: '' });
             if (onProblemAdded) onProblemAdded();
-            alert('Problem added successfully!');
+
+            // Success handled by parent or here? let's do here for form feedback
+            // Parent also does toast, but that's fine.
         } catch (err) {
-            setError(err.message);
+            console.error("Add Problem Error:", err);
+            toast.error(`Error: ${err.message}`);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="add-problem-form" style={{ background: '#161b22', padding: '1.5rem', borderRadius: '8px', border: '1px solid #30363d', marginBottom: '2rem' }}>
-            <h3 style={{ marginTop: 0 }}>Add New Problem</h3>
-            {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit} className="card add-form">
+            <h3 className="section-title" style={{ marginTop: 0, fontSize: '1.2rem' }}>✨ Add New Problem</h3>
 
-            <div style={{ display: 'grid', gap: '1rem' }}>
+            <div className="form-group">
                 <input
                     type="text"
-                    placeholder="Problem Title (Required)"
+                    className="input-field"
+                    placeholder="Paste URL, Problem ID (e.g. 3775), or Title (to autofetch details)⚡"
+                    value={formData.url}
+                    onChange={handleUrlChange}
+                />
+
+                <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Problem Title (e.g. Two Sum)"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
                 />
 
-                <input
-                    type="url"
-                    placeholder="LeetCode URL (Optional)"
-                    value={formData.url}
-                    onChange={e => setFormData({ ...formData, url: e.target.value })}
-                    style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
-                />
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                <div className="form-row">
                     <select
+                        className="input-field"
                         value={formData.difficulty}
                         onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
-                        style={{ padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
                     >
                         <option>Easy</option>
                         <option>Medium</option>
@@ -80,22 +158,22 @@ export default function AddProblemForm({ onProblemAdded }) {
 
                     <input
                         type="text"
-                        placeholder="Topics (comma separated)"
+                        className="input-field"
+                        placeholder="Topics (e.g. Array, DP)"
                         value={formData.topics}
                         onChange={e => setFormData({ ...formData, topics: e.target.value })}
-                        style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
                     />
                 </div>
 
                 <textarea
-                    placeholder="Notes / Approach"
+                    className="input-field textarea-field"
+                    placeholder="Notes, approaches, or key learnings..."
                     value={formData.notes}
                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
-                    style={{ width: '100%', padding: '8px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '4px' }}
                 />
 
-                <button type="submit" disabled={loading} className="btn-primary" style={{ justifySelf: 'start' }}>
+                <button type="submit" disabled={loading} className="btn-primary" style={{ width: 'auto', padding: '0.8rem 2rem' }}>
                     {loading ? 'Adding...' : 'Add Problem'}
                 </button>
             </div>

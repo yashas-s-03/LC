@@ -36,6 +36,9 @@ export const AuthProvider = ({ children }) => {
         signInWithGithub: async () => {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'github',
+                options: {
+                    redirectTo: window.location.origin,
+                }
             });
             if (error) throw error;
         },
@@ -47,7 +50,21 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {loading ? (
+                <div style={{
+                    height: '100vh',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                }}>
+                    <span style={{ fontSize: '3rem', animation: 'bounce 1s infinite' }}>🧠</span>
+                    <h2>Loading...</h2>
+                </div>
+            ) : children}
         </AuthContext.Provider>
     );
 };
