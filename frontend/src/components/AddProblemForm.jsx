@@ -7,7 +7,8 @@ export default function AddProblemForm({ onProblemAdded }) {
     const { user } = useAuth();
     const [formData, setFormData] = useState({
         title: '',
-        url: '',
+        url: '', // Visual input (can be ID or URL)
+        canonicalUrl: '', // Actual URL for submission
         difficulty: 'Easy',
         topics: '',
         notes: ''
@@ -19,75 +20,89 @@ export default function AddProblemForm({ onProblemAdded }) {
     // Debounced Auto-Fetch
     useEffect(() => {
         const timer = setTimeout(async () => {
-            console.log("Timer fired for:", formData.url);
             let url = formData.url;
+
+            // CLEAR STATE if input is empty
+            if (!url.trim()) {
+                setFormData(prev => ({
+                    ...prev,
+                    title: '',
+                    difficulty: 'Easy',
+                    topics: '',
+                    notes: '',
+                    canonicalUrl: ''
+                }));
+                return;
+            }
 
             if (url) {
                 // Case 1: Pure number (e.g. "3775")
                 if (/^\d+$/.test(url.trim())) {
-                    console.log("Input is numeric ID:", url);
-                    // Pass directly to backend
+                    // Pass directly
                 }
                 // Case 2: "Number. Title" pattern
                 else if (!url.includes('http') && !url.includes('.com') && /[0-9]+\./.test(url)) {
-                    console.log("Parsing Number. Title input:", url);
                     const cleanTitle = url.replace(/^[\d\s.]*/, '').trim();
                     if (cleanTitle.length > 2) {
                         const slug = cleanTitle.toLowerCase()
                             .replace(/[^\w\s-]/g, '')
                             .replace(/\s+/g, '-');
                         url = `https://leetcode.com/problems/${slug}`;
-                        console.log("Transformed to URL:", url);
                         toast("Searching by Title: " + cleanTitle, { icon: '🔍', duration: 1500 });
                     }
                 }
             }
 
-            console.log("Checking URL/ID:", url, "Title present:", !!formData.title);
-
-            // Allow URL containing '/problems/' OR pure numeric input OR plain slug-like string
+            // Allow URL containing '/problems/' OR pure numeric input
             const isUrl = url && url.includes('/problems/');
             const isId = /^\d+$/.test(url.trim());
-            // const isSlug = /^[a-z0-9-]+$/.test(url.trim()); // flexible
 
-            if ((isUrl || isId) && !formData.title) {
+            // REMOVED `&& !formData.title` to allow re-fetching/correcting
+            if (isUrl || isId) {
                 setIsFetching(true);
                 const toastId = toast.loading("Checking LeetCode...");
                 try {
                     const res = await fetch(`${API_URL}/fetch-leetcode`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url }) // Sends the constructed URL
+                        body: JSON.stringify({ url })
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        console.log("Fetch success:", data);
-                        setFormData(prev => ({
-                            ...prev,
-                            title: data.title,
-                            url: data.url, // Update URL to canonical one
-                            difficulty: data.difficulty,
-                            topics: data.topics ? data.topics.join(', ') : prev.topics
-                        }));
+                        setFormData(prev => {
+                            // If input is purely numeric, KEEP it numeric (don't overwrite with URL)
+                            // Otherwise, if it was a partial URL or something, update it to the clean one.
+                            const isNumeric = /^\d+$/.test(prev.url.trim());
+
+                            return {
+                                ...prev,
+                                title: data.title,
+                                url: isNumeric ? prev.url : data.url,
+                                canonicalUrl: data.url, // Store the real URL for submission
+                                difficulty: data.difficulty,
+                                topics: data.topics ? data.topics.join(', ') : prev.topics
+                            };
+                        });
                         toast.success("Found: " + data.title, { id: toastId });
                     } else {
-                        console.error("Fetch returned not OK", res.status);
-                        toast.error("Could not find problem details (Status: " + res.status + ")", { id: toastId });
+                        // Only error if it was a "complete" attempt (simple typing might trigger 404s momentarily)
+                        // But since we debounce, user stopped typing.
+                        toast.error("Could not find problem", { id: toastId });
                     }
                 } catch (error) {
-                    console.error("Fetch failed", error);
-                    toast.error("Network Error: " + error.message, { id: toastId });
+                    toast.error("Network Error", { id: toastId });
                 } finally {
                     setIsFetching(false);
                 }
             }
-        }, 600); // Reduced delay
+        }, 600);
 
         return () => clearTimeout(timer);
     }, [formData.url]);
 
     const handleUrlChange = (e) => {
-        setFormData({ ...formData, url: e.target.value });
+        // Clear canonicalUrl when user types so we don't submit stale data if they change input manually
+        setFormData({ ...formData, url: e.target.value, canonicalUrl: '' });
     };
 
     const handleSubmit = async (e) => {
@@ -103,6 +118,8 @@ export default function AddProblemForm({ onProblemAdded }) {
                 },
                 body: JSON.stringify({
                     ...formData,
+                    // Use canonicalUrl if available (from auto-fetch), otherwise raw input
+                    url: formData.canonicalUrl || formData.url,
                     user_id: user.id,
                     topics: formData.topics.split(',').map(t => t.trim()).filter(t => t),
                 }),
@@ -176,8 +193,13 @@ export default function AddProblemForm({ onProblemAdded }) {
                     rows={3}
                 />
 
-                <button type="submit" disabled={loading} className="btn-primary" style={{ width: 'auto', padding: '0.8rem 2rem' }}>
-                    {loading ? 'Adding...' : 'Add Problem'}
+                <button
+                    type="submit"
+                    disabled={loading || isFetching}
+                    className="btn-primary"
+                    style={{ width: 'auto', padding: '0.8rem 2rem', opacity: (loading || isFetching) ? 0.7 : 1 }}
+                >
+                    {isFetching ? 'Fetching...' : loading ? 'Adding...' : 'Add Problem'}
                 </button>
             </div>
         </form>
