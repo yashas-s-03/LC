@@ -233,7 +233,7 @@ function Dashboard() {
                 <span style={{ fontWeight: '700', fontSize: '1.2rem', color: 'var(--text-primary)' }}>{allProblems.length}</span>
               </div>
 
-              <div className="difficulty-breakdown sidebar-breakdown" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="difficulty-breakdown sidebar-breakdown">
                 <div
                   className="diff-row"
                   onClick={() => setDifficultyFilter('Easy')}
@@ -277,7 +277,7 @@ function Dashboard() {
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></span>
                         {cat}
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      <div className="skills-wrapper" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {skills.slice(0, 6).map(s => {
                           const isActive = topicFilter === s.name;
                           return (
@@ -313,7 +313,7 @@ function Dashboard() {
 
           </div>
 
-          <button onClick={signOut} className="btn-secondary" style={{ marginTop: 'auto', width: '100%' }}>Logout</button>
+          <button onClick={signOut} className="btn-secondary side-logout">Logout</button>
         </aside>
 
         {/* Main Content (Stats, Heatmap, History) */}

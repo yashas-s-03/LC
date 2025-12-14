@@ -1222,6 +1222,48 @@ header {
   gap: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .due-problems-grid {
+    grid-template-columns: 1fr;
+    /* Full width cards on mobile */
+    gap: 1rem;
+  }
+
+  .problems-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .main-content {
+    padding: 1rem !important;
+  }
+
+  .action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .action-bar button {
+    width: 100%;
+  }
+
+  .difficulty-tabs {
+    width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .history-table {
+    min-width: 100%;
+    /* Allow scroll */
+  }
+
+  .card {
+    padding: 1rem;
+  }
+}
+
 
 
 /* Sidebar Profile */
@@ -1322,6 +1364,75 @@ header {
 @media (max-width: 768px) {
   .dashboard-container {
     flex-direction: column !important;
+  }
+
+  /* Sidebar Mobile Fixes */
+  .sidebar {
+    width: 100% !important;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .sidebar-section {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  /* Make skills scrollable horizontally on mobile */
+  .skills-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    flex-wrap: nowrap !important;
+    /* Override inline style */
+  }
+
+  .profile-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    text-align: left;
+  }
+
+  .profile-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  .sidebar-stats-container {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .stat-row {
+    display: none !important;
+    /* Hide Total Solved text to save space, or make it compact */
+  }
+
+  .difficulty-breakdown {
+    flex-direction: row;
+    gap: 0.5rem;
+    width: auto;
+  }
+
+  .side-logout {
+    display: none;
+    /* Hide big logout button, maybe add icon later or keep if space permits */
   }
 }
 

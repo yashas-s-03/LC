@@ -61,19 +61,22 @@ export default function AddProblemForm({ onProblemAdded }) {
                     });
                     if (res.ok) {
                         const data = await res.json();
+                        console.log("Fetch success:", data);
                         setFormData(prev => ({
                             ...prev,
                             title: data.title,
+                            url: data.url, // Update URL to canonical one
                             difficulty: data.difficulty,
                             topics: data.topics ? data.topics.join(', ') : prev.topics
                         }));
                         toast.success("Found: " + data.title, { id: toastId });
                     } else {
-                        toast.error("Could not find problem details", { id: toastId });
+                        console.error("Fetch returned not OK", res.status);
+                        toast.error("Could not find problem details (Status: " + res.status + ")", { id: toastId });
                     }
                 } catch (error) {
                     console.error("Fetch failed", error);
-                    toast.dismiss(toastId);
+                    toast.error("Network Error: " + error.message, { id: toastId });
                 } finally {
                     setIsFetching(false);
                 }
