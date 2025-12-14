@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AddProblemForm from './components/AddProblemForm';
 import ProblemCard from './components/ProblemCard';
 import CursorBackground from './components/CursorBackground';
+import NoteModal from './components/NoteModal';
+import LoadingScreen from './components/LoadingScreen';
 
 import { API_URL } from './config';
 import toast, { Toaster } from 'react-hot-toast';
@@ -19,6 +21,7 @@ function Dashboard() {
   const [difficultyFilter, setDifficultyFilter] = useState(null); // null, 'Easy', 'Medium', 'Hard'
   const [topicFilter, setTopicFilter] = useState(null); // null or 'Dynamic Programming', etc.
   const [showAllProblems, setShowAllProblems] = useState(false); // For "Show More" functionality
+  const [selectedProblemForNotes, setSelectedProblemForNotes] = useState(null); // For Note Modal
 
   // Re-fetch function to refresh data
   const fetchData = async () => {
@@ -110,10 +113,31 @@ function Dashboard() {
     }
   };
 
+  const handleUpdateNote = (id, newNote) => {
+    // Optimistically update local state
+    setAllProblems(prev => prev.map(p =>
+      p.id === id ? { ...p, notes: newNote } : p
+    ));
+    setDueProblems(prev => prev.map(p =>
+      p.id === id ? { ...p, notes: newNote } : p
+    ));
+  };
+
+  // Helper to handle Timezone Rollover issues (Naive -> UTC -> Local +5:30 shift)
+  // Ensures dates late at night don't push to the next day
+  const parseDate = (dateString) => {
+    if (!dateString) return null;
+    const d = new Date(dateString);
+    // If we detect usage in +5:30 timezone (India) and date is early morning, it likely rolled over.
+    // We strictly subtract 6 hours to pull 00:00-05:59 back to the previous day.
+    d.setHours(d.getHours() - 6);
+    return d;
+  };
+
   // Helper for relative time
   const timeAgo = (dateString) => {
     if (!dateString) return 'Never';
-    const date = new Date(dateString);
+    const date = parseDate(dateString);
     const now = new Date();
 
     let diffInSeconds = Math.floor((now - date) / 1000);
@@ -130,13 +154,15 @@ function Dashboard() {
 
   const getReviewStatus = (dateStr) => {
     if (!dateStr) return { color: 'var(--text-secondary)', label: '-' };
-    const due = new Date(dateStr);
+    const due = parseDate(dateStr);
     const now = new Date();
     due.setHours(0, 0, 0, 0);
     now.setHours(0, 0, 0, 0);
     const diffDays = (due - now) / (1000 * 60 * 60 * 24);
 
-    if (diffDays <= 0) return { color: '#ff4d4d', label: 'Due Today', isUrgent: true }; // Red
+    if (diffDays <= 0 && diffDays > -1) return { color: '#ff4d4d', label: 'Due Today', isUrgent: true }; // Red
+    if (diffDays <= -1 && diffDays > -2) return { color: '#c0392b', label: 'Due Yesterday', isUrgent: true }; // Darker Red
+    if (diffDays <= -2) return { color: '#900c3f', label: `Overdue (${Math.abs(Math.floor(diffDays))}d)`, isUrgent: true }; // Dark Crimson
     if (diffDays <= 2) return { color: '#ff9f43', label: 'Soon' };    // Yellow
     return { color: '#2ecc71', label: due.toLocaleDateString('en-GB') }; // Green
   };
@@ -198,19 +224,7 @@ function Dashboard() {
   const hardCount = allProblems.filter(p => p.difficulty === 'Hard').length;
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'var(--bg-secondary)',
-        color: 'var(--text-primary)'
-      }}>
-        <h2>🧠 Loading...</h2>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -413,6 +427,16 @@ function Dashboard() {
                         </td>
                         <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{p.revision_count || 0}</td>
                         <td>
+                          <button
+                            onClick={() => setSelectedProblemForNotes(p)}
+                            className="btn-icon-note"
+                            title="View/Edit Notes"
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', marginRight: '8px'
+                            }}
+                          >
+                            📝
+                          </button>
                           <button onClick={() => deleteProblem(p.id)} className="btn-icon-delete" title="Delete Problem">🗑️</button>
                         </td>
                       </tr>
@@ -443,6 +467,15 @@ function Dashboard() {
               )}
             </div>
           </div>
+
+
+          {selectedProblemForNotes && (
+            <NoteModal
+              problem={selectedProblemForNotes}
+              onClose={() => setSelectedProblemForNotes(null)}
+              onSave={handleUpdateNote}
+            />
+          )}
 
         </main>
       </div>

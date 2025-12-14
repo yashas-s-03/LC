@@ -57,6 +57,10 @@ class ProblemCreate(BaseModel):
     topics: List[str] = []
     notes: Optional[str] = None
 
+class NoteUpdate(BaseModel):
+    notes: str
+    user_id: str
+
 class RevisionRequest(BaseModel):
     user_id: str
 
@@ -147,7 +151,9 @@ def mark_revised(problem_id: str, request: RevisionRequest):
 
     # Actually, keep it simple.
     now = datetime.now()
-    next_date_full = logic.calculate_next_revision(now, current_revision_count)
+    # Use (current + 1) because we are establishing the interval for the NEXT stage.
+    # Count 0 -> 1 (We want the interval for having 1 revision, which is 7 days)
+    next_date_full = logic.calculate_next_revision(now, current_revision_count + 1)
     
     # 3. Update DB
     update_data = {
@@ -157,6 +163,24 @@ def mark_revised(problem_id: str, request: RevisionRequest):
     }
     
     response = supabase.table("problems").update(update_data).eq("id", problem_id).execute()
+    return response.data
+
+@app.patch("/problems/{problem_id}/notes")
+def update_problem_note(problem_id: str, request: NoteUpdate):
+    # 1. Verify ownership (optional but good practice)
+    # For speed, we might just rely on the query filtering by user_id if we did RLS, 
+    # but here we manual check or just trust the update logic + user_id match if we wanted to be strict.
+    
+    # Simple check:
+    problem_response = supabase.table("problems").select("user_id").eq("id", problem_id).execute()
+    if not problem_response.data:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    if problem_response.data[0]["user_id"] != request.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # 2. Update
+    response = supabase.table("problems").update({"notes": request.notes}).eq("id", problem_id).execute()
     return response.data
 
 @app.post("/fetch-leetcode")
