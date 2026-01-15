@@ -22,6 +22,7 @@ function Dashboard() {
   const [topicFilter, setTopicFilter] = useState(null); // null or 'Dynamic Programming', etc.
   const [showAllProblems, setShowAllProblems] = useState(false); // For "Show More" functionality
   const [selectedProblemForNotes, setSelectedProblemForNotes] = useState(null); // For Note Modal
+  const [searchQuery, setSearchQuery] = useState(''); // Search by Title or ID
 
   // Re-fetch function to refresh data
   const fetchData = async () => {
@@ -135,9 +136,10 @@ function Dashboard() {
   };
 
   // Helper for relative time
+  // FIX: Do NOT use parseDate here, as it shifts time by -6 hours (intended for "Due Day" logic, not "Time Ago")
   const timeAgo = (dateString) => {
     if (!dateString) return 'Never';
-    const date = parseDate(dateString);
+    const date = new Date(dateString); // Standard parse without offset
     const now = new Date();
 
     let diffInSeconds = Math.floor((now - date) / 1000);
@@ -201,10 +203,22 @@ function Dashboard() {
 
     return categories;
   }, [allProblems]);
-  // Filter problems by difficulty
-  // Filter problems by difficulty AND topic
+  // Filter problems by difficulty, topic, AND SEARCH
   const filteredProblems = useMemo(() => {
     let res = allProblems;
+
+    // Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      res = res.filter(p => {
+        const titleMatch = p.title.toLowerCase().includes(q);
+        // Check ID/Number if available (assuming URL contains it or ID is usable, but user mentioned "LC qn number")
+        // Often title starts with number "1. Two Sum". If not, we check URL.
+        const urlMatch = p.url && p.url.toLowerCase().includes(q);
+        return titleMatch || urlMatch;
+      });
+    }
+
     if (difficultyFilter) {
       res = res.filter(p => p.difficulty === difficultyFilter);
     }
@@ -216,7 +230,7 @@ function Dashboard() {
       });
     }
     return res;
-  }, [allProblems, difficultyFilter, topicFilter]);
+  }, [allProblems, difficultyFilter, topicFilter, searchQuery]);
 
   // Header stats for Left Sidebar
   const easyCount = allProblems.filter(p => p.difficulty === 'Easy').length;
@@ -336,9 +350,25 @@ function Dashboard() {
           {/* Action Header */}
           <div className="action-bar">
             <h2 style={{ margin: 0 }}>Dashboard</h2>
-            <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
-              {showAddForm ? 'Close Form' : '+ Add Problem'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  width: '200px'
+                }}
+              />
+              <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
+                {showAddForm ? 'Close Form' : '+ Add Problem'}
+              </button>
+            </div>
           </div>
 
           {showAddForm && <AddProblemForm onProblemAdded={() => {
@@ -365,6 +395,7 @@ function Dashboard() {
                     problem={p}
                     onRevised={() => { fetchData(); toast.success("Refreshed!"); }}
                     onDelete={() => deleteProblem(p.id)}
+                    onViewNotes={() => setSelectedProblemForNotes(p)}
                   />
                 ))}
               </div>

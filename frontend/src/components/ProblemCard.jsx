@@ -1,7 +1,7 @@
 import { API_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProblemCard({ problem, onRevised }) {
+export default function ProblemCard({ problem, onRevised, onViewNotes }) {
     const { user } = useAuth();
 
     const handleRevise = async () => {
@@ -67,12 +67,22 @@ export default function ProblemCard({ problem, onRevised }) {
                     {' • '}
                     Revison Count: {problem.revision_count}
                 </div>
-                {problem.notes && <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#c9d1d9', fontStyle: 'italic' }}>📝 {problem.notes}</div>}
+                {/* Inline notes removed in favor of modal button */}
             </div>
 
-            <button onClick={handleRevise} className="btn-primary" style={{ width: 'auto' }}>
-                Mark Revised
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                    onClick={onViewNotes}
+                    className="btn-secondary"
+                    style={{ width: 'auto', padding: '0.5rem 0.8rem' }}
+                    title="View Notes"
+                >
+                    📝
+                </button>
+                <button onClick={handleRevise} className="btn-primary" style={{ width: 'auto' }}>
+                    Mark Revised
+                </button>
+            </div>
         </div>
     );
 }
