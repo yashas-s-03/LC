@@ -848,41 +848,59 @@ header {
 @media (max-width: 768px) {
   .login-page {
     align-items: flex-start;
-    /* Prevent top cropping if content overflows */
-    padding: 1rem;
+    padding: 2rem 1.5rem;
+    /* More top padding / side padding */
+    padding-top: 4rem;
+    /* Specific top clearance */
     height: auto;
     min-height: 100vh;
+    box-sizing: border-box;
   }
 
   .login-hero {
-    gap: 2rem;
-    margin-top: 2rem;
-    /* Give some top spacing */
+    gap: 1.5rem;
+    /* Reduce gap */
+    margin-top: 0;
     margin-bottom: 2rem;
+    width: 100%;
+  }
+
+  .hero-content {
+    width: 100%;
   }
 
   .hero-content h1 {
-    font-size: 1.8rem;
-    /* Smaller title */
+    font-size: 2rem;
+    /* Reduced from 2.5 but readable */
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
   }
 
   .hero-icon {
-    font-size: 3rem !important;
-    /* Smaller icon override */
+    font-size: 3.5rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .auth-box {
-    padding: 1.5rem;
-    /* Compact padding */
+    padding: 2rem 1.5rem;
+    width: 100%;
   }
 
   .feature-grid {
-    gap: 1rem;
+    gap: 0.8rem;
+    width: 100%;
   }
 
   .feature-item {
-    min-width: 80px;
-    padding: 0.8rem;
+    min-width: 0;
+    /* Allow shrinking */
+    flex: 1;
+    padding: 0.8rem 0.5rem;
   }
 }
 

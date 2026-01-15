@@ -355,21 +355,26 @@ body {
 
 /* Skill Badges Interactive */
 .skill-badge {
-  background: rgba(255, 255, 255, 0.05);
-  /* Slightly visible bg */
+  background: #1e293b;
+  /* Darker distinct bg */
   color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: 9999px;
+  padding: 6px 14px;
+  border-radius: 9999px !important;
   /* Pill shape */
   font-size: 0.8rem;
   border: 1px solid var(--border);
   display: inline-flex;
+  /* Ensure inline-flex */
   align-items: center;
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 6px;
-  width: fit-content;
+  margin-bottom: 8px;
+  margin-right: 6px;
+  /* Spacing between */
+  width: auto;
+  min-width: max-content;
+  /* Ensure pill doesn't squash */
 }
 
 .skill-badge:hover {
