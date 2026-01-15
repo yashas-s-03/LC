@@ -76,7 +76,8 @@ export default function AddProblemForm({ onProblemAdded }) {
 
                             return {
                                 ...prev,
-                                title: data.title,
+                                ...prev,
+                                title: data.questionId ? `${data.questionId}. ${data.title}` : data.title,
                                 url: isNumeric ? prev.url : data.url,
                                 canonicalUrl: data.url, // Store the real URL for submission
                                 difficulty: data.difficulty,

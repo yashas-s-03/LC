@@ -248,25 +248,38 @@ function Dashboard() {
 
         {/* Left Sidebar (Profile & Langs) */}
         <aside className="sidebar">
-          <div className="profile-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div className="profile-avatar">🧠</div>
-            <div>
-              <h3 className="profile-name" style={{ margin: 0 }}>{user.email.split('@')[0]}</h3>
-              <button
-                onClick={signOut}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  padding: 0,
-                  textDecoration: 'underline'
-                }}
-              >
-                Logout
-              </button>
+          <div className="profile-card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--bg-card)', borderRadius: '12px', marginBottom: '1rem', border: '1px solid var(--border)' }}>
+            <div className="profile-avatar" style={{ fontSize: '1.5rem', background: 'var(--bg-secondary)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>🧠</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 className="profile-name" style={{ margin: 0, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email.split('@')[0]}
+              </h3>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Free Plan</span>
             </div>
+            <button
+              onClick={signOut}
+              title="Logout"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
           </div>
 
           <div className="sidebar-section" style={{ marginTop: '0' }}>

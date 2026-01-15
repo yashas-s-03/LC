@@ -265,6 +265,7 @@ def fetch_leetcode_data(request: FetchRequest):
     query = """
     query questionData($titleSlug: String!) {
       question(titleSlug: $titleSlug) {
+        questionFrontendId
         title
         difficulty
         topicTags {
@@ -300,6 +301,7 @@ def fetch_leetcode_data(request: FetchRequest):
                 
             return {
                 "title": q["title"],
+                "questionId": q["questionFrontendId"],
                 "url": f"https://leetcode.com/problems/{slug}/",
                 "difficulty": q["difficulty"],
                 "topics": [t["name"] for t in q["topicTags"]]

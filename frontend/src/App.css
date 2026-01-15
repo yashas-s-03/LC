@@ -346,10 +346,11 @@ body {
   }
 }
 
-display: flex;
-justify-content: center;
-align-items: center;
-min-height: 200px;
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
 }
 
 /* Skill Badges Interactive */
@@ -378,11 +379,59 @@ min-height: 200px;
 .skill-badge.active {
   background: var(--accent-primary);
   color: white;
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+  border-color: #a5b4fc;
+  /* Light border for contrast */
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(79, 70, 229, 0.4);
+  font-weight: 600;
 }
 
 .skill-badge.active:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
+}
+
+/* Dashboard Layout */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .due-problems-grid {
+    grid-template-columns: 1fr;
+  }
 }
