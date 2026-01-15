@@ -346,9 +346,43 @@ body {
   }
 }
 
-.loading-container {
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 200px;
+}
+
+/* Skill Badges Interactive */
+.skill-badge {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
   display: flex;
-  justify-content: center;
   align-items: center;
-  min-height: 200px;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skill-badge:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-light);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.skill-badge.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.skill-badge.active:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
 }

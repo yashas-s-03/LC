@@ -10,6 +10,7 @@
   --accent-hover: #4338ca;
   --accent-light: #818cf8;
   --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --accent-glow: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
 
   --success: #10b981;
   --warning: #f59e0b;

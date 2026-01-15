@@ -248,9 +248,25 @@ function Dashboard() {
 
         {/* Left Sidebar (Profile & Langs) */}
         <aside className="sidebar">
-          <div className="profile-card">
+          <div className="profile-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div className="profile-avatar">🧠</div>
-            <h3 className="profile-name">{user.email.split('@')[0]}</h3>
+            <div>
+              <h3 className="profile-name" style={{ margin: 0 }}>{user.email.split('@')[0]}</h3>
+              <button
+                onClick={signOut}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline'
+                }}
+              >
+                Logout
+              </button>
+            </div>
           </div>
 
           <div className="sidebar-section" style={{ marginTop: '0' }}>
@@ -312,20 +328,7 @@ function Dashboard() {
                             <span
                               key={s.name}
                               onClick={() => setTopicFilter(isActive ? null : s.name)}
-                              style={{
-                                background: isActive ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                color: isActive ? 'white' : 'var(--text-secondary)',
-                                padding: '4px 10px',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                border: isActive ? 'none' : '1px solid var(--border)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                boxShadow: isActive ? '0 2px 8px rgba(139, 92, 246, 0.3)' : 'none'
-                              }}
+                              className={`skill-badge ${isActive ? 'active' : ''}`}
                             >
                               {s.name} <span style={{ opacity: 0.8, fontSize: '0.7rem' }}>x{s.count}</span>
                             </span>
@@ -341,7 +344,7 @@ function Dashboard() {
 
           </div>
 
-          <button onClick={signOut} className="btn-secondary side-logout">Logout</button>
+
         </aside>
 
         {/* Main Content (Stats, Heatmap, History) */}
