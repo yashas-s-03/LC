@@ -843,6 +843,49 @@ header {
   flex-shrink: 0;
 }
 
+
+/* Mobile Responsiveness for Login Page */
+@media (max-width: 768px) {
+  .login-page {
+    align-items: flex-start;
+    /* Prevent top cropping if content overflows */
+    padding: 1rem;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .login-hero {
+    gap: 2rem;
+    margin-top: 2rem;
+    /* Give some top spacing */
+    margin-bottom: 2rem;
+  }
+
+  .hero-content h1 {
+    font-size: 1.8rem;
+    /* Smaller title */
+  }
+
+  .hero-icon {
+    font-size: 3rem !important;
+    /* Smaller icon override */
+  }
+
+  .auth-box {
+    padding: 1.5rem;
+    /* Compact padding */
+  }
+
+  .feature-grid {
+    gap: 1rem;
+  }
+
+  .feature-item {
+    min-width: 80px;
+    padding: 0.8rem;
+  }
+}
+
 .sidebar-stat-group {
   display: flex;
   flex-direction: column;

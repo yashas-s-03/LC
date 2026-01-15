@@ -355,17 +355,21 @@ body {
 
 /* Skill Badges Interactive */
 .skill-badge {
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  /* Slightly visible bg */
   color: var(--text-secondary);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  /* Pill shape */
+  font-size: 0.8rem;
   border: 1px solid var(--border);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-bottom: 6px;
+  width: fit-content;
 }
 
 .skill-badge:hover {
@@ -373,15 +377,13 @@ body {
   border-color: var(--accent-light);
   color: var(--text-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .skill-badge.active {
   background: var(--accent-primary);
   color: white;
-  border-color: #a5b4fc;
-  /* Light border for contrast */
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(79, 70, 229, 0.4);
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   font-weight: 600;
 }
 
