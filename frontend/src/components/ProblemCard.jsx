@@ -1,7 +1,7 @@
 import { API_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProblemCard({ problem, onRevised, onViewNotes }) {
+export default function ProblemCard({ problem, onRevised, onViewNotes, onDelete }) {
     const { user } = useAuth();
 
     const handleRevise = async () => {
@@ -71,6 +71,14 @@ export default function ProblemCard({ problem, onRevised, onViewNotes }) {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                    onClick={onDelete}
+                    className="btn-danger-outline"
+                    style={{ width: 'auto', padding: '0.5rem 0.8rem' }}
+                    title="Delete Problem"
+                >
+                    🗑️
+                </button>
                 <button
                     onClick={onViewNotes}
                     className="btn-secondary"
