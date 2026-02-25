@@ -1544,3 +1544,50 @@ header {
   background: var(--accent-hover);
   transform: translateY(-1px);
 }
+
+/* Global Animations */
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom Skill Badge Animation/Style Enhancements */
+.skill-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.skill-badge:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-primary);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.skill-badge.active {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
+}

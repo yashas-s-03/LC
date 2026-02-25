@@ -24,25 +24,33 @@ function Dashboard() {
   const [selectedProblemForNotes, setSelectedProblemForNotes] = useState(null); // For Note Modal
   const [searchQuery, setSearchQuery] = useState(''); // Search by Title or ID
 
-  // Re-fetch function to refresh data
+  // Re-fetch function to refresh data with timeout logic
   const fetchData = async () => {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
     try {
       // 1. Fetch Due Problems
-      const resDue = await fetch(`${API_URL}/dashboard?user_id=${user.id}`);
+      const resDue = await fetch(`${API_URL}/dashboard?user_id=${user.id}`, { signal: controller.signal });
       if (resDue.ok) {
         setDueProblems(await resDue.json());
       }
 
       // 2. Fetch All Problems
-      const resAll = await fetch(`${API_URL}/problems?user_id=${user.id}`);
+      const resAll = await fetch(`${API_URL}/problems?user_id=${user.id}`, { signal: controller.signal });
       if (resAll.ok) {
         setAllProblems(await resAll.json());
       }
     } catch (err) {
-      console.error("Failed to fetch data", err);
-      toast.error("Network error. Check connection.");
+      if (err.name === 'AbortError') {
+        toast.error("Request timed out. Server might be sleeping.");
+      } else {
+        console.error("Failed to fetch data", err);
+        toast.error("Network error. Check connection.");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -372,7 +380,7 @@ function Dashboard() {
 
           {/* Action Header */}
           <div className="action-bar">
-            <h2 style={{ margin: 0 }}>Dashboard</h2>
+            <h2 style={{ margin: 0 }}>REVISEE Dashboard</h2>
             <div style={{ display: 'flex', gap: '10px' }}>
               <div style={{ position: 'relative' }}>
                 <input
