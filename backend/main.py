@@ -43,9 +43,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Allow Vercel (and other) domains
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=False,
     allow_headers=["*"],
+    allow_methods=["*"],
 )
 
 # Pydantic Models
