@@ -257,7 +257,14 @@ function Dashboard() {
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Free Plan</span>
             </div>
             <button
-              onClick={signOut}
+              onClick={async () => {
+                try {
+                  await signOut();
+                } catch (err) {
+                  console.error("Logout failed", err);
+                  toast.error("Logout failed. Please try again.");
+                }
+              }}
               title="Logout"
               style={{
                 background: 'transparent',
