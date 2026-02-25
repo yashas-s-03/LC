@@ -28,7 +28,7 @@ function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
       // 1. Fetch Due Problems

@@ -25,7 +25,7 @@ export default function LoadingScreen() {
         }}>
             <h2 style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ animation: 'bounce 1s infinite' }}>🧠</span>
-                Loading{dots}
+                loading{dots}
             </h2>
             <style>{`
                 @keyframes bounce {

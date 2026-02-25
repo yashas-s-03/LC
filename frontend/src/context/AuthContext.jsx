@@ -1,6 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import toast from 'react-hot-toast';
+import LoadingScreen from '../components/LoadingScreen';
 
 const AuthContext = createContext({});
 
@@ -12,8 +13,18 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let safetyTimer;
+
         const initializeAuth = async () => {
             try {
+                // Set a timeout for initial auth check
+                safetyTimer = setTimeout(() => {
+                    if (loading) {
+                        console.warn("Auth initialization timed out. Supabase might be waking up.");
+                        setLoading(false);
+                    }
+                }, 120000); // Increased timeout to 2 minutes
+
                 // Check active sessions and sets the user
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error) throw error;
@@ -22,9 +33,12 @@ export const AuthProvider = ({ children }) => {
                 setUser(session?.user ?? null);
             } catch (err) {
                 console.error("Auth Initialization Error:", err);
-                toast.error("Auth connection failed. Check your network.");
+                toast.error("Account connection failed. Try refreshing.");
             } finally {
                 setLoading(false);
+                if (safetyTimer) {
+                    clearTimeout(safetyTimer);
+                }
             }
         };
 
@@ -34,10 +48,18 @@ export const AuthProvider = ({ children }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-            setLoading(false);
+            setLoading(false); // Ensure loading is false after any auth state change
+            if (safetyTimer) {
+                clearTimeout(safetyTimer);
+            }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            if (safetyTimer) {
+                clearTimeout(safetyTimer);
+            }
+        };
     }, []);
 
     const value = {
@@ -62,19 +84,7 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={value}>
             {loading ? (
-                <div style={{
-                    height: '100vh',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    flexDirection: 'column',
-                    gap: '1rem'
-                }}>
-                    <span style={{ fontSize: '3rem', animation: 'bounce 1s infinite' }}>🧠</span>
-                    <h2>Loading...</h2>
-                </div>
+                <LoadingScreen />
             ) : children}
         </AuthContext.Provider>
     );

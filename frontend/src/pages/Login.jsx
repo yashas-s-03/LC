@@ -28,11 +28,11 @@ export default function Login() {
             <div className="login-hero">
                 {/* Left Side: Hero Text */}
                 <div className="hero-content">
-                    <h1>Master Your<br />LeetCode Revision</h1>
+                    <h1>REVISEE<br />Master Your Logic</h1>
                     <span className="hero-icon" style={{ fontSize: '5rem' }}>🧠</span>
                     <p className="hero-subtitle">
                         Spaced repetition that actually works. <br />
-                        Track, revise, and conquer your coding interviews.
+                        Track, revise, and conquer your coding journey with REVISEE.
                     </p>
 
                     <div className="feature-grid">
