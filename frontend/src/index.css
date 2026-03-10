@@ -1509,7 +1509,9 @@ header {
   .sidebar {
     width: 100% !important;
     max-width: 100vw;
-    overflow-x: hidden;
+    /* Use clip instead of hidden: clip doesn't create a scroll container,
+       so child .skills-wrapper can still scroll horizontally */
+    overflow-x: clip;
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
@@ -1527,7 +1529,7 @@ header {
     max-width: 100%;
     min-width: 0;
     gap: 1rem;
-    overflow: hidden;
+    /* Do NOT add overflow:hidden here — it would clip the skills-wrapper scroll container */
   }
 
   /* Skills wrapper: THIS is the horizontal scroll container */

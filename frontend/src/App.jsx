@@ -436,6 +436,8 @@ function Dashboard() {
 
 
 
+          {/* Due for Revision - hide section entirely when topic filter active and no matches */}
+          {!topicFilter && (
           <div style={{ marginBottom: '2rem', marginTop: '1rem' }}>
             <h4 style={{ color: '#ff9f43', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Due for Revision
@@ -466,6 +468,7 @@ function Dashboard() {
               </div>
             )}
           </div>
+          )}
 
           {/* Bottom Row: Recent AC */}
           <div className="recent-ac-section" style={{ marginTop: '1.5rem' }}>
