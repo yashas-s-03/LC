@@ -948,6 +948,10 @@ header {
   gap: 1rem;
 }
 
+.search-input-field {
+  width: 200px;
+}
+
 .difficulty-filter-group {
   display: flex;
   gap: 1rem;
@@ -1300,26 +1304,51 @@ header {
     padding: 1rem !important;
   }
 
+  /* Action bar: stack vertically, make controls full-width */
   .action-bar {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem;
   }
 
-  .action-bar button {
+  .action-bar > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     width: 100%;
   }
 
+  /* Search container fills width on mobile */
+  .search-container-mobile {
+    width: 100% !important;
+  }
+
+  .search-container-mobile input {
+    width: 100% !important;
+  }
+
+  /* Difficulty tabs: scrollable row */
   .difficulty-tabs {
     width: 100%;
     overflow-x: auto;
     justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
 
-  .history-table {
-    min-width: 100%;
-    /* Allow scroll */
+  .difficulty-tabs::-webkit-scrollbar {
+    display: none;
   }
+
+  /* Recent section header + tabs: stack vertically */
+  .recent-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  /* IMPORTANT: Do NOT override min-width here — let the table-responsive wrapper handle scrolling */
+  /* .history-table min-width stays at 600px so the wrapper scrolls horizontally */
 
   .card {
     padding: 1rem;
@@ -1379,6 +1408,18 @@ header {
   align-items: center !important;
   margin: 0;
   padding: 0;
+}
+
+/* On very small screens, allow login page to scroll instead of clipping */
+@media (max-height: 600px) {
+  .login-page {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100vh;
+    overflow-y: auto;
+    align-items: flex-start !important;
+    padding: 2rem 1rem !important;
+  }
 }
 
 .login-card-container {

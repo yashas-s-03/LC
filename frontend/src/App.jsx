@@ -382,19 +382,19 @@ function Dashboard() {
           <div className="action-bar">
             <h2 style={{ margin: 0 }}>REVISEE Dashboard</h2>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ position: 'relative' }}>
+              <div className="search-container-mobile" style={{ position: 'relative' }}>
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input-field"
                   style={{
-                    padding: '8px 32px 8px 12px', // Add padding-right for the X button
+                    padding: '8px 32px 8px 12px',
                     borderRadius: '6px',
                     border: '1px solid var(--border)',
                     background: 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
-                    width: '200px'
                   }}
                 />
                 {searchQuery && (
@@ -469,7 +469,7 @@ function Dashboard() {
 
           {/* Bottom Row: Recent AC */}
           <div className="recent-ac-section" style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div className="recent-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 className="section-title" style={{ margin: 0 }}>
                 {topicFilter ? `Topic: ${topicFilter}` : difficultyFilter ? `${difficultyFilter} Problems` : 'Recent Problems'}
               </h3>
