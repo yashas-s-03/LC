@@ -349,7 +349,7 @@ function Dashboard() {
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }}></span>
                         {cat}
                       </div>
-                      <div className="skills-wrapper" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      <div className="skills-wrapper" style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: '6px', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
                         {skills.slice(0, 6).map(s => {
                           const isActive = topicFilter === s.name;
                           return (
