@@ -9,6 +9,7 @@ import CursorBackground from './components/CursorBackground';
 import NoteModal from './components/NoteModal';
 import LoadingScreen from './components/LoadingScreen';
 import PatternHealth from './pages/PatternHealth';
+import Settings from './pages/Settings';
 
 import { API_URL } from './config';
 import toast, { Toaster } from 'react-hot-toast';
@@ -418,6 +419,13 @@ function Dashboard() {
                     </span>
                   )}
                 </Link>
+                <Link
+                  to="/settings"
+                  className="main-nav-tab"
+                  style={{ textDecoration: 'none' }}
+                >
+                  ⚙ Settings
+                </Link>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -543,7 +551,22 @@ function Dashboard() {
                   <tbody>
                     {filteredProblems.slice(0, showAllProblems ? filteredProblems.length : 10).map(p => (
                       <tr key={p.id}>
-                        <td><a href={p.url} className="problem-link" target="_blank" rel="noopener noreferrer">{p.title}</a></td>
+                        <td>
+                          <a href={p.url} className="problem-link" target="_blank" rel="noopener noreferrer">{p.title}</a>
+                          {p.source === 'auto_sync' && (
+                            <span className="badge badge-auto-sync" title="Added automatically by LeetCode sync">🤖 Auto</span>
+                          )}
+                          {p.needs_pattern_tag && (
+                            <button
+                              className="badge badge-needs-tags"
+                              title="Only has LeetCode's broad official tags. Click to add your own pattern tags."
+                              onClick={() => setSelectedProblemForNotes(p)}
+                              style={{ cursor: 'pointer', border: 'none' }}
+                            >
+                              🏷 Tags
+                            </button>
+                          )}
+                        </td>
                         <td><span className={`badge ${p.difficulty}`}>{p.difficulty}</span></td>
                         <td>{timeAgo(p.solved_date)}</td>
                         <td>
@@ -630,6 +653,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <PatternHealth />
+              </ProtectedRoute>
+            }
+          />
+          {/* Settings — LeetCode integration and user preferences */}
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

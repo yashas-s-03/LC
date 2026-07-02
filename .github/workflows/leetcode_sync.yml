@@ -1,0 +1,42 @@
+name: LeetCode Auto Sync
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+on:
+  # Hourly cron. 30-min would also work; hourly is gentler on LeetCode's public API.
+  # GitHub Actions uses UTC — this fires at :00 every hour.
+  schedule:
+    - cron: '0 * * * *'
+
+  # Manual trigger from GitHub Actions UI (useful for testing without waiting
+  # for the next scheduled run).
+  workflow_dispatch:
+
+# ── Job ───────────────────────────────────────────────────────────────────────
+jobs:
+  sync:
+    name: Sync LeetCode submissions for all users
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Wake backend + trigger sync for all users
+        # curl flags:
+        #   -f  → fail with non-zero exit code on HTTP 4xx/5xx (makes the GH Actions
+        #          step red so you notice if sync is broken)
+        #   -s  → silent (no progress meter, cleaner logs)
+        #   -w  → print HTTP status code after the body so it's visible in logs
+        #   --max-time 300 → 5-minute hard timeout for the whole request
+        #          (the Render free instance may take ~60s to cold-start, then
+        #           sync runs on top of that)
+        run: |
+          echo "Calling ${{ secrets.BACKEND_URL }}/sync/leetcode/all"
+          curl -f -s \
+            -X POST \
+            -H "X-Sync-Secret: ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 300 \
+            -w "\nHTTP Status: %{http_code}\n" \
+            "${{ secrets.BACKEND_URL }}/sync/leetcode/all"
+        # BACKEND_URL = https://lc-5m8i.onrender.com  (no trailing slash)
+        # SYNC_SECRET = any strong random string you generate; must match
+        #               the SYNC_SECRET env var set in your Render service.

@@ -67,7 +67,26 @@ export default function ProblemCard({ problem, onRevised, onViewNotes, onDelete 
                     {' • '}
                     Revison Count: {problem.revision_count}
                 </div>
-                {/* Inline notes removed in favor of modal button */}
+                {/* Auto-sync and needs-tags indicators */}
+                {(problem.source === 'auto_sync' || problem.needs_pattern_tag) && (
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                        {problem.source === 'auto_sync' && (
+                            <span className="badge badge-auto-sync" title="Added automatically by LeetCode sync">
+                                🤖 Auto-synced
+                            </span>
+                        )}
+                        {problem.needs_pattern_tag && (
+                            <button
+                                className="badge badge-needs-tags"
+                                title="Only has LeetCode official tags. Add your own pattern tags via Notes."
+                                onClick={onViewNotes}
+                                style={{ cursor: 'pointer', border: 'none' }}
+                            >
+                                🏷 Add pattern tags
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>

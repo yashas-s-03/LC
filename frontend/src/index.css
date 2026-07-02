@@ -1867,3 +1867,78 @@ header {
   width: 100%;
   box-sizing: border-box;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO-SYNC BADGES — new styles
+   .badge-auto-sync   grey neutral badge  (🤖 Auto / Auto-synced)
+   .badge-needs-tags  amber prompt badge  (🏷 Tags / Add pattern tags)
+   Both inherit .badge pill shape — colour-only additions.
+   ═══════════════════════════════════════════════════════════════ */
+
+.badge-auto-sync {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 0.7rem;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+/* badge-needs-tags doubles as a button — reset button defaults */
+.badge-needs-tags {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 0.7rem;
+  vertical-align: middle;
+  margin-left: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.badge-needs-tags:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS PAGE — shared input + card styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Generic text input — reused in Settings username field */
+.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-light);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+
+.input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* card — content panel in Settings (and reusable elsewhere) */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
