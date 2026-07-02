@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
@@ -8,6 +8,7 @@ import ProblemCard from './components/ProblemCard';
 import CursorBackground from './components/CursorBackground';
 import NoteModal from './components/NoteModal';
 import LoadingScreen from './components/LoadingScreen';
+import PatternHealth from './pages/PatternHealth';
 
 import { API_URL } from './config';
 import toast, { Toaster } from 'react-hot-toast';
@@ -23,6 +24,7 @@ function Dashboard() {
   const [showAllProblems, setShowAllProblems] = useState(false); // For "Show More" functionality
   const [selectedProblemForNotes, setSelectedProblemForNotes] = useState(null); // For Note Modal
   const [searchQuery, setSearchQuery] = useState(''); // Search by Title or ID
+  const [stalePatternCount, setStalePatternCount] = useState(0); // Pattern Health header badge
 
   // Re-fetch function to refresh data with timeout logic
   const fetchData = async () => {
@@ -41,6 +43,16 @@ function Dashboard() {
       const resAll = await fetch(`${API_URL}/problems?user_id=${user.id}`, { signal: controller.signal });
       if (resAll.ok) {
         setAllProblems(await resAll.json());
+      }
+
+      // 3. Fetch stale pattern count for the header badge.
+      //    Fix #4: single call returns {topics, stale_count}; we only need stale_count here.
+      //    The full topics list is fetched by PatternHealth.jsx when the user visits that tab.
+      //    No second /pattern-health/stale-count endpoint — we derive it from the same payload.
+      const resPH = await fetch(`${API_URL}/pattern-health?user_id=${user.id}`, { signal: controller.signal });
+      if (resPH.ok) {
+        const phData = await resPH.json();
+        setStalePatternCount(phData.stale_count ?? 0);
       }
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -380,7 +392,34 @@ function Dashboard() {
 
           {/* Action Header */}
           <div className="action-bar">
-            <h2 style={{ margin: 0 }}>REVISEE Dashboard</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <h2 style={{ margin: 0 }}>REVISEE</h2>
+              {/* ── Main navigation tabs ── */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Link
+                  to="/"
+                  className="main-nav-tab main-nav-tab-active"
+                  style={{ textDecoration: 'none' }}
+                >
+                  📋 Problems
+                </Link>
+                <Link
+                  to="/patterns"
+                  className="main-nav-tab"
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  🧩 Patterns
+                  {stalePatternCount > 0 && (
+                    <span
+                      className="badge"
+                      style={{ background: '#f59e0b', color: '#1a0a00', fontSize: '0.72rem', padding: '2px 6px', fontWeight: '700' }}
+                    >
+                      {stalePatternCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <div className="search-container-mobile" style={{ position: 'relative' }}>
                 <input
@@ -582,6 +621,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          {/* Pattern Health — independent tab; Dashboard is unaffected if this breaks */}
+          <Route
+            path="/patterns"
+            element={
+              <ProtectedRoute>
+                <PatternHealth />
               </ProtectedRoute>
             }
           />

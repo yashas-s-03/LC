@@ -87,6 +87,47 @@ def add_problem(problem: ProblemCreate):
     
     # Let Supabase handle the ID generation and default dates
     response = supabase.table("problems").insert(data).execute()
+
+    # ── Pattern Health side-effects (additive, do not affect return value) ──
+    # Insert into problem_topics and topic_activity for each topic.
+    # Sequenced: insert problem first, then side effects.
+    # Failures are logged but don't break the add-problem response.
+    if response.data and problem.topics:
+        new_problem_id = response.data[0]["id"]
+        solved_ts = data["solved_date"]
+
+        # Fix #2: trim whitespace, skip empty strings (guards against
+        # auto-fetch artifacts like ["Array", "Array ", ""] from parsing bugs)
+        clean_topics = [t.strip() for t in problem.topics if t.strip()]
+
+        if clean_topics:
+            # Insert normalised join table rows
+            pt_rows = [
+                {"problem_id": new_problem_id, "topic": t, "user_id": problem.user_id}
+                for t in clean_topics
+            ]
+            try:
+                supabase.table("problem_topics").insert(pt_rows).execute()
+            except Exception as e:
+                # Log but don't fail — the problem itself was successfully added
+                print(f"WARNING: problem_topics insert failed for {new_problem_id}: {e}")
+
+            # Insert 'solved' activity rows
+            ta_rows = [
+                {
+                    "topic": t,
+                    "problem_id": new_problem_id,
+                    "user_id": problem.user_id,
+                    "activity": "solved",
+                    "occurred_at": solved_ts,
+                }
+                for t in clean_topics
+            ]
+            try:
+                supabase.table("topic_activity").insert(ta_rows).execute()
+            except Exception as e:
+                print(f"WARNING: topic_activity insert failed for {new_problem_id}: {e}")
+
     return response.data
 
 @app.delete("/problems/{problem_id}")
@@ -144,26 +185,32 @@ def mark_revised(problem_id: str, request: RevisionRequest):
     if problem["user_id"] != request.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # 2. Calculate next date
+    # 2. Calculate next date using the existing spaced-repetition logic (unchanged)
     current_revision_count = problem["revision_count"]
-    
-
-
-    # Actually, keep it simple.
     now = datetime.now()
     # Use (current + 1) because we are establishing the interval for the NEXT stage.
     # Count 0 -> 1 (We want the interval for having 1 revision, which is 7 days)
     next_date_full = logic.calculate_next_revision(now, current_revision_count + 1)
-    
-    # 3. Update DB
-    update_data = {
-        "revision_count": current_revision_count + 1,
-        "next_revision_date": next_date_full.isoformat(),
-        "solved_date": now.isoformat() # Optional: update 'last interaction'
-    }
-    
-    response = supabase.table("problems").update(update_data).eq("id", problem_id).execute()
-    return response.data
+
+    # 3. Fix #3: Atomically update problems.next_revision_date AND insert
+    #    topic_activity rows via a single Postgres function (mark_problem_revised_with_activity).
+    #    Either both succeed or neither does — prevents a state where the per-problem
+    #    schedule is advanced but the topic activity is not logged (silent corruption).
+    try:
+        rpc_response = supabase.rpc(
+            "mark_problem_revised_with_activity",
+            {
+                "p_problem_id": problem_id,
+                "p_user_id":    request.user_id,
+                "p_next_date":  next_date_full.isoformat(),
+                "p_new_count":  current_revision_count + 1,
+                "p_now":        now.isoformat(),
+            }
+        ).execute()
+        return rpc_response.data
+    except Exception as e:
+        print(f"ERROR: mark_problem_revised_with_activity RPC failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Revision failed: {str(e)}")
 
 @app.patch("/problems/{problem_id}/notes")
 def update_problem_note(problem_id: str, request: NoteUpdate):
@@ -182,6 +229,47 @@ def update_problem_note(problem_id: str, request: NoteUpdate):
     # 2. Update
     response = supabase.table("problems").update({"notes": request.notes}).eq("id", problem_id).execute()
     return response.data
+
+# ── Pattern Health ────────────────────────────────────────────────────────────
+
+@app.get("/pattern-health")
+def get_pattern_health(user_id: str):
+    """
+    Returns all topic health data for a user in a single query.
+
+    Fix #4: stale_count is derived from the same RPC result set here
+    so the frontend makes exactly one API call and gets both:
+      - topics: list of topic health objects for the Patterns tab
+      - stale_count: integer for the header badge
+
+    There is intentionally no separate /pattern-health/stale-count endpoint.
+
+    Fix #6 (naming): this endpoint uses 'next_due' (not 'next_revision_date')
+    to make the separation between the per-problem system and the pattern
+    system explicit. The frontend Pattern Health components only touch
+    'next_due'; the Dashboard components only touch 'next_revision_date'.
+    They never share a unified "all due things" list.
+    """
+    try:
+        rpc_response = supabase.rpc(
+            "get_pattern_health",
+            {"p_user_id": user_id}
+        ).execute()
+
+        topics = rpc_response.data or []
+
+        # Derive stale_count from the already-fetched data (no second query)
+        stale_count = sum(1 for t in topics if t.get("is_overdue", False))
+
+        return {
+            "topics": topics,
+            "stale_count": stale_count,
+        }
+    except Exception as e:
+        print(f"ERROR: get_pattern_health RPC failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Pattern health fetch failed: {str(e)}")
+
+# ── LeetCode Auto-fetch ───────────────────────────────────────────────────────
 
 @app.post("/fetch-leetcode")
 def fetch_leetcode_data(request: FetchRequest):
