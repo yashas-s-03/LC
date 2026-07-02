@@ -221,14 +221,6 @@ def run_sync_for_user(user_id: str, leetcode_username: str) -> dict:
             topics = [t["name"] for t in q.get("topicTags", [])]
             clean_topics = [t.strip() for t in topics if t.strip()]
 
-            # next_revision_date = solved_date + 3 days (same as manual add)
-            try:
-                next_rev = (
-                    datetime.fromisoformat(ts) + timedelta(days=3)
-                ).isoformat()
-            except ValueError:
-                next_rev = (datetime.now(tz=timezone.utc) + timedelta(days=3)).isoformat()
-
             q_id = q.get("questionFrontendId", "")
             display_title = f"{q_id}. {q['title']}" if q_id else q["title"]
 
@@ -241,7 +233,11 @@ def run_sync_for_user(user_id: str, leetcode_username: str) -> dict:
                 "topics":              clean_topics,
                 "notes":               None,
                 "revision_count":      0,
-                "next_revision_date":  next_rev,
+                # next_revision_date is intentionally NULL for auto-synced problems.
+                # Auto-synced problems are NOT added to the revision queue — the user
+                # only revises problems they consciously add via the dashboard.
+                # Pattern Health still gets full credit via topic_activity below.
+                "next_revision_date":  None,
                 "solved_date":         ts,
                 "created_at":          ts,
                 "source":              "auto_sync",

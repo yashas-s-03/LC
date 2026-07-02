@@ -31,6 +31,12 @@ WHERE url IS NOT NULL
   AND slug IS NULL
   AND url LIKE '%/problems/%';
 
+-- Fix existing auto-synced problems (from previous runs) to remove them from
+-- the revision queue by setting their next_revision_date to NULL.
+UPDATE problems
+SET next_revision_date = NULL
+WHERE source = 'auto_sync';
+
 -- Index for the dedup lookup in run_sync_for_user
 CREATE INDEX IF NOT EXISTS idx_problems_user_slug ON problems(user_id, slug)
   WHERE slug IS NOT NULL;
@@ -49,6 +55,7 @@ ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 -- Single "all operations" policy: users can SELECT/INSERT/UPDATE/DELETE
 -- their own row. No other user can see or touch it.
+DROP POLICY IF EXISTS "Users manage own settings" ON user_settings;
 CREATE POLICY "Users manage own settings"
   ON user_settings
   FOR ALL
@@ -69,6 +76,7 @@ CREATE TABLE IF NOT EXISTS leetcode_sync_log (
 ALTER TABLE leetcode_sync_log ENABLE ROW LEVEL SECURITY;
 
 -- Read-only access for users (for their own rows, for transparency).
+DROP POLICY IF EXISTS "Users see own sync log" ON leetcode_sync_log;
 CREATE POLICY "Users see own sync log"
   ON leetcode_sync_log
   FOR SELECT

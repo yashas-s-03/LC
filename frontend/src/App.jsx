@@ -26,6 +26,7 @@ function Dashboard() {
   const [selectedProblemForNotes, setSelectedProblemForNotes] = useState(null); // For Note Modal
   const [searchQuery, setSearchQuery] = useState(''); // Search by Title or ID
   const [stalePatternCount, setStalePatternCount] = useState(0); // Pattern Health header badge
+  const [showAutoSynced, setShowAutoSynced] = useState(false); // toggle auto-synced in history table
 
   // Re-fetch function to refresh data with timeout logic
   const fetchData = async () => {
@@ -224,17 +225,22 @@ function Dashboard() {
 
     return categories;
   }, [allProblems]);
+  // Separate manual vs auto-synced problems.
+  // The revision dashboard only shows manual problems — auto-synced ones belong to
+  // Pattern Health (topic_activity), not the user's curated revision list.
+  const manualProblems   = useMemo(() => allProblems.filter(p => p.source !== 'auto_sync'), [allProblems]);
+  const autoSyncProblems = useMemo(() => allProblems.filter(p => p.source === 'auto_sync'),  [allProblems]);
+
   // Filter problems by difficulty, topic, AND SEARCH
   const filteredProblems = useMemo(() => {
-    let res = allProblems;
+    // Base: manual problems only (unless user toggles auto-synced visibility)
+    let res = showAutoSynced ? allProblems : manualProblems;
 
     // Search Filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       res = res.filter(p => {
         const titleMatch = p.title.toLowerCase().includes(q);
-        // Check ID/Number if available (assuming URL contains it or ID is usable, but user mentioned "LC qn number")
-        // Often title starts with number "1. Two Sum". If not, we check URL.
         const urlMatch = p.url && p.url.toLowerCase().includes(q);
         return titleMatch || urlMatch;
       });
@@ -251,12 +257,12 @@ function Dashboard() {
       });
     }
     return res;
-  }, [allProblems, difficultyFilter, topicFilter, searchQuery]);
+  }, [allProblems, manualProblems, showAutoSynced, difficultyFilter, topicFilter, searchQuery]);
 
-  // Header stats for Left Sidebar
-  const easyCount = allProblems.filter(p => p.difficulty === 'Easy').length;
-  const mediumCount = allProblems.filter(p => p.difficulty === 'Medium').length;
-  const hardCount = allProblems.filter(p => p.difficulty === 'Hard').length;
+  // Header stats: count manual problems only (auto-synced aren't in the revision system)
+  const easyCount   = manualProblems.filter(p => p.difficulty === 'Easy').length;
+  const mediumCount = manualProblems.filter(p => p.difficulty === 'Medium').length;
+  const hardCount   = manualProblems.filter(p => p.difficulty === 'Hard').length;
 
   if (loading) {
     return <LoadingScreen />;
@@ -518,15 +524,35 @@ function Dashboard() {
           )}
 
           {/* Bottom Row: Recent AC */}
-          <div className="recent-ac-section" style={{ marginTop: '1.5rem' }}>
+            <div className="recent-ac-section" style={{ marginTop: '1.5rem' }}>
             <div className="recent-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 className="section-title" style={{ margin: 0 }}>
-                {topicFilter ? `Topic: ${topicFilter}` : difficultyFilter ? `${difficultyFilter} Problems` : 'Recent Problems'}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 className="section-title" style={{ margin: 0 }}>
+                  {topicFilter ? `Topic: ${topicFilter}` : difficultyFilter ? `${difficultyFilter} Problems` : 'My Problems'}
+                </h3>
+                {/* Auto-synced toggle pill */}
+                {autoSyncProblems.length > 0 && (
+                  <button
+                    onClick={() => setShowAutoSynced(v => !v)}
+                    className="badge badge-auto-sync"
+                    style={{
+                      cursor: 'pointer',
+                      border: showAutoSynced ? '1px solid #94a3b8' : '1px dashed rgba(148,163,184,0.4)',
+                      opacity: showAutoSynced ? 1 : 0.7,
+                      background: showAutoSynced ? 'rgba(148,163,184,0.25)' : 'rgba(148,163,184,0.08)',
+                      padding: '3px 9px',
+                      marginLeft: 0,
+                    }}
+                    title={showAutoSynced ? 'Hide auto-synced problems' : 'Show auto-synced problems'}
+                  >
+                    🤖 {autoSyncProblems.length} auto-synced {showAutoSynced ? '▲' : '▼'}
+                  </button>
+                )}
+              </div>
 
               {/* Difficulty Tabs */}
               <div className="difficulty-tabs">
-                <span className={!difficultyFilter ? "tab active" : "tab"} onClick={() => setDifficultyFilter(null)}>All ({allProblems.length})</span>
+                <span className={!difficultyFilter ? "tab active" : "tab"} onClick={() => setDifficultyFilter(null)}>All ({manualProblems.length})</span>
                 <span className={difficultyFilter === 'Easy' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Easy')}>Easy ({easyCount})</span>
                 <span className={difficultyFilter === 'Medium' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Medium')}>Medium ({mediumCount})</span>
                 <span className={difficultyFilter === 'Hard' ? "tab active" : "tab"} onClick={() => setDifficultyFilter('Hard')}>Hard ({hardCount})</span>
